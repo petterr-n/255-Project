@@ -10,3 +10,6 @@ __pycache__/
 # Ignore Hugging Face dataset cache
 .cache/huggingface/datasets/
 
+# VSCode
+.vscode
+
