@@ -46,7 +46,7 @@ Follow these steps to set up the project locally:
 
 To run the project:
 
-1. Activate the virtual environment (if not already active).
+1. Activate the virtual environment (if not already active) (Steg 4).
 2. Run the main script:
 
     ```
