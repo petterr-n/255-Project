@@ -11,3 +11,9 @@ dataset = load_dataset("google/speech_commands", "v0.01")
 
 # Overview of the dataset
 print(dataset)
+
+print(dataset['train'][0])
+
+print(dataset['train'].features['label'])
+print(dataset['train'][0]['audio'])
+print(dataset['train'][0]['label'])
