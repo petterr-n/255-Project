@@ -1,10 +1,20 @@
-# Project Title
+# DAT255 Deep Learning project
 
-DAT255 Deep Learning project
+## Google Speech Command dataset
+
+The dataset used for training, validating and testing the deep neural network, is formatted like the following:
+
+- file: Path to the audio file.
+- audio['array']: The actual audio data as a numpy array.
+- audio['sampling_rate']: The sampling rate of the audio file (16KHz).
+- label: The label for the audio file (e.g. a specific command like "yes", "no", etc.).
+- is_unknown: Boolean flag indicating wether the sample is unknown.
+- speaker_id: The speakers ID who recordede the sample.
+- utterance_id: The ID of the specific utterance of that speaker. 
 
 ---
 
-## Installation
+## Installation and Usage
 
 Follow these steps to set up the project locally:
 
@@ -42,7 +52,7 @@ Follow these steps to set up the project locally:
 
 ---
 
-## Usage
+# Usage
 
 To run the project:
 
