@@ -13,3 +13,6 @@ __pycache__/
 # VSCode
 .vscode
 
+# Google speech commands dataset
+data/
+
