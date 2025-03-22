@@ -1,57 +1,11 @@
-import pygame 
-import time
+import pygame
 import random
 import threading
-import numpy as np
-import sounddevice as sd
-import librosa
-import tensorflow as tf
-from tensorflow.keras import models
+import voice_control
 
-# === Voice Control Setup ===
-model = models.load_model("voice_model.keras", compile=False)
-labels = ['down', 'left', 'right', 'up']
-voice_active = False
+pygame.init()
 
-def record_audio():
-    fs = 16000
-    seconds = 1
-    print("Listening...")
-    audio = sd.rec(int(seconds * fs), samplerate=fs, channels=1, dtype='float32')
-    sd.wait()
-    return np.squeeze(audio)
-
-def get_spectrogram(waveform):
-    spectrogram = tf.signal.stft(waveform, frame_length=255, frame_step=128)
-    spectrogram = tf.abs(spectrogram)
-    spectrogram = spectrogram[..., tf.newaxis]
-    return spectrogram
-
-def predict_command():
-    try: 
-        audio = record_audio()
-        spec = get_spectrogram(audio)
-        spec = tf.expand_dims(spec, 0)
-        prediction = model.predict(spec)
-        predicted_index = tf.argmax(prediction[0]).numpy()
-
-        command = labels[predicted_index]
-        print(f"Godkjent kommando: {command}")
-        return command
-    except Exception as e:
-        print(f"Feil ved stemmegjenkjenning: {e}")
-        return None
-
-def voice_control():
-    global change_to, voice_active
-    while voice_active:
-        command = predict_command()
-        if command in ['up', 'down', 'left', 'right']:
-            change_to = command.upper()
-        # time.sleep(0.5)
-
-
-# === Game Setup ===
+voice_thread = None
 
 snake_speed = 5
 window_x = 1090
@@ -61,12 +15,18 @@ black = pygame.Color(0, 0, 0)
 white = pygame.Color(255, 255, 255)
 red = pygame.Color(255, 0, 0)
 green = pygame.Color(0, 255, 0)
-blue = pygame.Color(0, 0, 255)
 
-pygame.init()
-pygame.display.set_caption('VoiceCommand Snakes')
 game_window = pygame.display.set_mode((window_x, window_y))
+pygame.display.set_caption('VoiceCommand Snakes')
 fps = pygame.time.Clock()
+
+def draw_button(rect, text, mouse, active_color, inactive_color):
+    color = active_color if rect.collidepoint(mouse) else inactive_color
+    pygame.draw.rect(game_window, color, rect)
+    font = pygame.font.SysFont('times new roman', 30)
+    text_surface = font.render(text, True, black)
+    text_rect = text_surface.get_rect(center=rect.center)
+    game_window.blit(text_surface,text_rect)
 
 def main_menu():
     while True:
@@ -84,12 +44,8 @@ def main_menu():
         start_rect = pygame.Rect(window_x // 2 - 100, window_y // 2 - 30, button_width, button_height)
         quit_rect = pygame.Rect(window_x // 2 - 100, window_y // 2 + 40, button_width, button_height)
 
-        pygame.draw.rect(game_window, green if start_rect.collidepoint(mouse) else white, start_rect)
-        pygame.draw.rect(game_window, red if quit_rect.collidepoint(mouse) else white, quit_rect)
-
-        font = pygame.font.SysFont('times new roman', 30)
-        game_window.blit(font.render("Start Game", True, black), (start_rect.x + 35, start_rect.y + 10))
-        game_window.blit(font.render("Quit", True, black), (quit_rect.x + 70, quit_rect.y + 10))
+        draw_button(start_rect, "Start Game", mouse, green, white)
+        draw_button(quit_rect, "Quit", mouse, red, white)
 
         pygame.display.flip()
 
@@ -104,23 +60,23 @@ def main_menu():
                     pygame.quit()
                     quit()
 
-def show_score(choice, color, font, size):
+def show_score(score, color, font, size):
     score_font = pygame.font.SysFont(font, size)
     score_surface = score_font.render('Score : ' + str(score), True, color)
     score_rect = score_surface.get_rect()
     game_window.blit(score_surface, score_rect)
 
 def game_loop():
-    global direction, change_to, score, snake_position, snake_body, fruit_position, fruit_spawn, voice_active
+    global voice_thread
 
     # Start voice control thread
-    voice_active = True
-    voice_thread = threading.Thread(target=voice_control)
+    voice_control.voice_active = True
+    voice_thread = threading.Thread(target=voice_control.voice_control)
     voice_thread.daemon = True
     voice_thread.start()
 
     direction = 'RIGHT'
-    change_to = direction
+    voice_control.change_to = direction
     score = 0
     snake_position = [100, 50]
     snake_body = [ [100, 50], [90, 50], [80, 50], [70, 50] ]
@@ -132,16 +88,16 @@ def game_loop():
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                game_over(score)
+                return False
     
         # Validation direction
-        if change_to == 'UP' and direction != 'DOWN':
+        if voice_control.change_to == 'UP' and direction != 'DOWN':
             direction = 'UP'
-        if change_to == 'DOWN' and direction != 'UP':
+        if voice_control.change_to == 'DOWN' and direction != 'UP':
             direction = 'DOWN'
-        if change_to == 'LEFT' and direction != 'RIGHT':
+        if voice_control.change_to == 'LEFT' and direction != 'RIGHT':
             direction = 'LEFT'
-        if change_to == 'RIGHT' and direction != 'LEFT':
+        if voice_control.change_to == 'RIGHT' and direction != 'LEFT':
             direction = 'RIGHT'
         
         
@@ -172,19 +128,21 @@ def game_loop():
         pygame.draw.rect(game_window, white, pygame.Rect(fruit_position[0], fruit_position[1], 10, 10))
 
         if snake_position[0] < 0 or snake_position[0] > window_x-10 or snake_position[1] < 0 or snake_position[1] > window_y-10:
-            game_over(score)
+            return game_over(score)
 
         for block in snake_body[1:]:
             if snake_position == block:
-                game_over(score)
+                return game_over(score)
 
-        show_score(1, white, 'times new roman', 20)
+        show_score(score, white, 'times new roman', 20)
         pygame.display.update()
         fps.tick(snake_speed)
 
+
 def game_over(score):
-    global voice_active
-    voice_active = False
+    voice_control.voice_active = False
+    if voice_thread is not None:
+        voice_thread.join()
 
     while True:
         game_window.fill(black)
@@ -207,12 +165,8 @@ def game_over(score):
         retry_rect = pygame.Rect(window_x // 2 - 100, window_y // 2, button_width, button_height)
         quit_rect = pygame.Rect(window_x // 2 - 100, window_y // 2 + 70, button_width, button_height)
 
-        pygame.draw.rect(game_window, green if retry_rect.collidepoint(mouse) else white, retry_rect)
-        pygame.draw.rect(game_window, red if quit_rect.collidepoint(mouse) else white, quit_rect)
-
-        font = pygame.font.SysFont('times new roman', 30)
-        game_window.blit(font.render("Try again", True, black), (retry_rect.x + 35, retry_rect.y + 10))
-        game_window.blit(font.render("Quit", True, black), (quit_rect.x + 60, quit_rect.y + 10))
+        draw_button(retry_rect, "Try again", mouse, green, white)
+        draw_button(quit_rect, "Quit", mouse, red, white)
 
         pygame.display.flip()
 
@@ -222,11 +176,6 @@ def game_over(score):
                 quit()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if retry_rect.collidepoint(mouse):
-                    game_loop()
-                    return
+                    return True
                 elif quit_rect.collidepoint(mouse):
-                    pygame.quit()
-                    quit()
-
-main_menu()
-game_loop()
+                    return False
