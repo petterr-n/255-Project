@@ -4,7 +4,7 @@ import sounddevice as sd
 import tensorflow as tf
 from tensorflow.keras import models
 
-model = models.load_model("voice_model.keras", compile=False)
+model = models.load_model("model/voice_model.keras", compile=False)
 labels = ['down', 'left', 'right', 'up']
 voice_active = False
 change_to = 'RIGHT'

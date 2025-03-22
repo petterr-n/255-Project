@@ -1,7 +1,7 @@
 import pygame
 import random
 import threading
-import voice_control
+import src.voice_control as voice_control
 
 pygame.init()
 

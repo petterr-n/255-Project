@@ -1,4 +1,4 @@
-from snake import main_menu, game_loop
+from src.snake import main_menu, game_loop
 
 if __name__ == "__main__":
     main_menu()
