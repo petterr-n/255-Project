@@ -9,7 +9,7 @@ import tensorflow as tf
 from tensorflow.keras import models
 
 # === Voice Control Setup ===
-model = models.load_model("voice_model.keras")
+model = models.load_model("voice_model.keras", compile=False)
 labels = ['down', 'left', 'right', 'up']
 
 def record_audio():
@@ -27,12 +27,19 @@ def get_spectrogram(waveform):
     return spectrogram
 
 def predict_command():
-    audio = record_audio()
-    spec = get_spectrogram(audio)
-    spec = tf.expand_dims(spec, 0)
-    prediction = model(spec)
-    predicted_index = tf.argmax(prediction[0]).numpy()
-    return labels[predicted_index]
+    try: 
+        audio = record_audio()
+        spec = get_spectrogram(audio)
+        spec = tf.expand_dims(spec, 0)
+        prediction = model.predict(spec)
+        predicted_index = tf.argmax(prediction[0]).numpy()
+
+        command = labels[predicted_index]
+        print(f"Godkjent kommando: {command}")
+        return command
+    except Exception as e:
+        print(f"Feil ved stemmegjenkjenning: {e}")
+        return None
 
 def voice_control():
     global change_to
@@ -45,7 +52,7 @@ def voice_control():
 
 # === Game Setup ===
 
-snake_speed = 10
+snake_speed = 5
 window_x = 720
 window_y = 480
 
@@ -78,6 +85,19 @@ def show_score(choice, color, font, size):
     score_rect = score_surface.get_rect()
     game_window.blit(score_surface, score_rect)
 
+def game_over():
+    my_font = pygame.font.SysFont('times new roman', 50)
+    game_over_surface = my_font.render(f"Your Score is : {score}", True, red)
+    game_over_rect = game_over_surface.get_rect(center=(window_x // 2, window_y // 2))
+    
+    game_window.fill(black)
+    game_window.blit(game_over_surface, game_over_rect)
+    pygame.display.flip()
+
+    time.sleep(3)
+    pygame.quit()
+    quit()
+
 # Start voice control thread
 voice_thread = threading.Thread(target=voice_control)
 voice_thread.daemon = True
@@ -86,10 +106,8 @@ voice_thread.start()
 # Main game loop
 while True:
     for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN:
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
+        if event.type == pygame.QUIT:
+            game_over()
     
     # Validation direction
     if change_to == 'UP' and direction != 'DOWN':
@@ -129,13 +147,11 @@ while True:
     pygame.draw.rect(game_window, white, pygame.Rect(fruit_position[0], fruit_position[1], 10, 10))
 
     if snake_position[0] < 0 or snake_position[0] > window_x-10 or snake_position[1] < 0 or snake_position[1] > window_y-10:
-        pygame.quit()
-        quit()
+        game_over()
 
     for block in snake_body[1:]:
         if snake_position == block:
-            pygame.quit()
-            quit()
+            game_over()
 
     show_score(1, white, 'times new roman', 20)
     pygame.display.update()
