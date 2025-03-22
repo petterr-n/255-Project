@@ -1,163 +1,181 @@
-import pygame 
-import time
+import pygame
 import random
+import threading
+import voice_control
 
-snake_speed = 10
+pygame.init()
 
-# Window size
-window_x = 720
-window_y = 480
+voice_thread = None
 
-# defining colors
+snake_speed = 5
+window_x = 1090
+window_y = 720
+
 black = pygame.Color(0, 0, 0)
 white = pygame.Color(255, 255, 255)
 red = pygame.Color(255, 0, 0)
 green = pygame.Color(0, 255, 0)
-blue = pygame.Color(0, 0, 255)
 
-# Initialising pygame
-pygame.init()
-
-# Initialising pygame
-pygame.display.set_caption('VoiceCommand Snakes')
 game_window = pygame.display.set_mode((window_x, window_y))
-
-# FPS (frames per second) controller
+pygame.display.set_caption('VoiceCommand Snakes')
 fps = pygame.time.Clock()
 
-# defining snake default position
-snake_position = [100, 50]
+def draw_button(rect, text, mouse, active_color, inactive_color):
+    color = active_color if rect.collidepoint(mouse) else inactive_color
+    pygame.draw.rect(game_window, color, rect)
+    font = pygame.font.SysFont('times new roman', 30)
+    text_surface = font.render(text, True, black)
+    text_rect = text_surface.get_rect(center=rect.center)
+    game_window.blit(text_surface,text_rect)
 
-# defining first 4 blocks of snake
-# body
-snake_body = [  [100, 50],
-                [90, 50],
-                [80, 50],
-                [70, 50]
-            ]
+def main_menu():
+    while True:
+        game_window.fill(black)
+        mouse = pygame.mouse.get_pos()
 
-# fruit position
-fruit_position = [random.randrange(1, (window_x//10)) * 10,
-                  random.randrange(1, (window_y//10))* 10]
-fruit_spawn = True
+        # Tittel
+        title_font = pygame.font.SysFont('times new roman', 60)
+        title_surface = title_font.render("Voice Snake", True, green)
+        title_rect = title_surface.get_rect(center=(window_x // 2, window_y // 4))
+        game_window.blit(title_surface, title_rect)
 
-# setting default snake direction
-# towards right
-direction = 'RIGHT'
-change_to = direction
+        # Knapper
+        button_width, button_height = 200, 50
+        start_rect = pygame.Rect(window_x // 2 - 100, window_y // 2 - 30, button_width, button_height)
+        quit_rect = pygame.Rect(window_x // 2 - 100, window_y // 2 + 40, button_width, button_height)
 
-# initial score
-score = 0
+        draw_button(start_rect, "Start Game", mouse, green, white)
+        draw_button(quit_rect, "Quit", mouse, red, white)
 
-# displaying Score function
-def show_score(choice, color, font, size):
-    # creating font object score_font
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if start_rect.collidepoint(mouse):
+                    return
+                elif quit_rect.collidepoint(mouse):
+                    pygame.quit()
+                    quit()
+
+def show_score(score, color, font, size):
     score_font = pygame.font.SysFont(font, size)
-
-    # create the display surface object
-    # score_surface
     score_surface = score_font.render('Score : ' + str(score), True, color)
-
-    # create a rectangular object for the text surface object
     score_rect = score_surface.get_rect()
-
-    # displaying text
     game_window.blit(score_surface, score_rect)
 
+def game_loop():
+    global voice_thread
 
-def game_over():
-    # creating font object my_font
-    my_font = pygame.font.SysFont('times new roman', 50)
+    # Start voice control thread
+    voice_control.voice_active = True
+    voice_thread = threading.Thread(target=voice_control.voice_control)
+    voice_thread.daemon = True
+    voice_thread.start()
 
-    # creating a text surface on which text will be drawn
-    game_over_surface = my_font.render('Your Score is : ' + str(score), True, red)
-
-    # create a rectangular object for the text surface object
-    game_over_rect = game_over_surface.get_rect()
-
-    # setting position of the text
-    game_over_rect.midtop = (window_x/2, window_y/4)
-
-    # blit will draw the text on screen
-    game_window.blit(game_over_surface, game_over_rect)
-    pygame.display.flip()
-
-    # after 2 seconds we will quit the  program
-    time.sleep(2)
-
-    # deactivating pygame library
-    pygame.quit()
-
-    # quit the program
-    quit()
-
-# Main Function
-while True:
-    # handling key events
-    for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                change_to = 'UP'
-            if event.key == pygame.K_DOWN:
-                change_to = 'DOWN'
-            if event.key == pygame.K_LEFT:
-                change_to = 'LEFT'
-            if event.key == pygame.K_RIGHT:
-                change_to = 'RIGHT'
-    
-    # If two keys pressed simultaneously we don't want snake to move into two directions simultaneously
-    if change_to == 'UP' and direction != 'DOWN':
-        direction = 'UP'
-    if change_to == 'DOWN' and direction != 'UP':
-        direction = 'DOWN'
-    if change_to == 'LEFT' and direction != 'RIGHT':
-        direction = 'LEFT'
-    if change_to == 'RIGHT' and direction != 'LEFT':
-        direction = 'RIGHT'
-    
-    # Moving the snake
-    if direction == 'UP':
-        snake_position[1] -= 10
-    if direction == 'DOWN':
-        snake_position[1] += 10
-    if direction == 'LEFT':
-        snake_position[0] -= 10
-    if direction == 'RIGHT':
-        snake_position[0] += 10
-    
-    # Snake body growing mechanism if fruits and snakes collide then scores will be incremented by 10
-    snake_body.insert(0, list(snake_position))
-    if snake_position[0] == fruit_position[0] and snake_position[1] == fruit_position[1]:
-        score += 10
-        fruit_spawn = False
-    else:
-        snake_body.pop()
-    if not fruit_spawn:
-        fruit_position = [random.randrange(1, (window_x//10)) * 10,
-                          random.randrange(1, (window_y//10)) * 10]
+    direction = 'RIGHT'
+    voice_control.change_to = direction
+    score = 0
+    snake_position = [100, 50]
+    snake_body = [ [100, 50], [90, 50], [80, 50], [70, 50] ]
+    fruit_position = [random.randrange(1, (window_x // 10)) * 10,
+                      random.randrange(1, (window_y // 10)) * 10]
     fruit_spawn = True
-    game_window.fill(black)
 
-    for pos in snake_body:
-        pygame.draw.rect(game_window, green, pygame.Rect(pos[0], pos[1], 10, 10))
-    pygame.draw.rect(game_window, white, pygame.Rect(fruit_position[0], fruit_position[1], 10, 10))
+    # Main game loop
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+    
+        # Validation direction
+        if voice_control.change_to == 'UP' and direction != 'DOWN':
+            direction = 'UP'
+        if voice_control.change_to == 'DOWN' and direction != 'UP':
+            direction = 'DOWN'
+        if voice_control.change_to == 'LEFT' and direction != 'RIGHT':
+            direction = 'LEFT'
+        if voice_control.change_to == 'RIGHT' and direction != 'LEFT':
+            direction = 'RIGHT'
+        
+        
+        if direction == 'UP':
+            snake_position[1] -= 10
+        if direction == 'DOWN':
+            snake_position[1] += 10
+        if direction == 'LEFT':
+            snake_position[0] -= 10
+        if direction == 'RIGHT':
+            snake_position[0] += 10
+        
+        snake_body.insert(0, list(snake_position))
+        if snake_position == fruit_position:
+            score += 10
+            fruit_spawn = False
+        else:
+            snake_body.pop()
 
-    # Game Over conditions
-    if snake_position[0] < 0 or snake_position[0] > window_x-10:
-        game_over()
-    if snake_position[1] < 0 or snake_position[1] > window_y-10:
-        game_over()
+        if not fruit_spawn:
+            fruit_position = [random.randrange(1, (window_x//10)) * 10,
+                            random.randrange(1, (window_y//10)) * 10]
+        fruit_spawn = True
 
-    # Touching the snake body
-    for block in snake_body[1:]:
-        if snake_position[0] == block[0] and snake_position[1] == block[1]:
-            game_over()
+        game_window.fill(black)
+        for pos in snake_body:
+            pygame.draw.rect(game_window, green, pygame.Rect(pos[0], pos[1], 10, 10))
+        pygame.draw.rect(game_window, white, pygame.Rect(fruit_position[0], fruit_position[1], 10, 10))
 
-    # displaying score continuously
-    show_score(1, white, 'times new roman', 20)
+        if snake_position[0] < 0 or snake_position[0] > window_x-10 or snake_position[1] < 0 or snake_position[1] > window_y-10:
+            return game_over(score)
 
-    # Refresh game screen
-    pygame.display.update()
+        for block in snake_body[1:]:
+            if snake_position == block:
+                return game_over(score)
 
-    # Frame Per Second /Refresh Rate
-    fps.tick(snake_speed)
+        show_score(score, white, 'times new roman', 20)
+        pygame.display.update()
+        fps.tick(snake_speed)
+
+
+def game_over(score):
+    voice_control.voice_active = False
+    if voice_thread is not None:
+        voice_thread.join()
+
+    while True:
+        game_window.fill(black)
+        mouse = pygame.mouse.get_pos()
+
+        # Game Over-tittel
+        title_font = pygame.font.SysFont('times new roman', 60)
+        title_surface = title_font.render("Game Over", True, red)
+        title_rect = title_surface.get_rect(center=(window_x // 2, window_y // 4))
+        game_window.blit(title_surface, title_rect)
+
+        # Score
+        score_font = pygame.font.SysFont('times new roman', 35)
+        score_surface = score_font.render(f"Your score is: {score}", True, white)
+        score_rect = score_surface.get_rect(center=(window_x // 2, window_y // 3 + 40))
+        game_window.blit(score_surface, score_rect)
+
+        # Knapper
+        button_width, button_height = 200, 50
+        retry_rect = pygame.Rect(window_x // 2 - 100, window_y // 2, button_width, button_height)
+        quit_rect = pygame.Rect(window_x // 2 - 100, window_y // 2 + 70, button_width, button_height)
+
+        draw_button(retry_rect, "Try again", mouse, green, white)
+        draw_button(quit_rect, "Quit", mouse, red, white)
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if retry_rect.collidepoint(mouse):
+                    return True
+                elif quit_rect.collidepoint(mouse):
+                    return False
