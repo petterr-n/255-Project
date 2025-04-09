@@ -7,7 +7,10 @@ pygame.init()
 
 voice_thread = None
 
-snake_speed = 5
+snake_speed = 3
+snake_size = 10
+fruit_size = 20
+
 window_x = 1090
 window_y = 720
 
@@ -111,7 +114,9 @@ def game_loop():
             snake_position[0] += 10
         
         snake_body.insert(0, list(snake_position))
-        if snake_position == fruit_position:
+        snake_head_rect = pygame.Rect(snake_position[0], snake_position[1], snake_size, snake_size)
+        fruit_rect = pygame.Rect(fruit_position[0], fruit_position[1], fruit_size, fruit_size)
+        if snake_head_rect.colliderect(fruit_rect):
             score += 10
             fruit_spawn = False
         else:
@@ -125,7 +130,7 @@ def game_loop():
         game_window.fill(black)
         for pos in snake_body:
             pygame.draw.rect(game_window, green, pygame.Rect(pos[0], pos[1], 10, 10))
-        pygame.draw.rect(game_window, white, pygame.Rect(fruit_position[0], fruit_position[1], 10, 10))
+        pygame.draw.rect(game_window, white, pygame.Rect(fruit_position[0], fruit_position[1], fruit_size, fruit_size))
 
         if snake_position[0] < 0 or snake_position[0] > window_x-10 or snake_position[1] < 0 or snake_position[1] > window_y-10:
             return game_over(score)
