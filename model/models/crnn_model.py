@@ -3,7 +3,7 @@ from tensorflow.keras import layers, models
 
 def build_crnn_model(input_shape, num_labels, norm_layer):
     model = models.Sequential([
-        layers.input(shape=input_shape),
+        layers.Input(shape=input_shape),
         layers.Resizing(32, 32),
         norm_layer,
         layers.Conv2D(32, 3, activation='relu'),
