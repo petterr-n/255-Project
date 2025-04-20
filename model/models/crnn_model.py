@@ -1,4 +1,3 @@
-import tensorflow as tf
 from tensorflow.keras import layers, models
 
 def build_crnn_model(input_shape, num_labels, norm_layer):
@@ -17,5 +16,4 @@ def build_crnn_model(input_shape, num_labels, norm_layer):
         layers.Dropout(0.5),
         layers.Dense(num_labels, activation='softmax'),
     ])
-
     return model

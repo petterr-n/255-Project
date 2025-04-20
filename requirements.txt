@@ -122,3 +122,4 @@ zipp==3.21.0
 pygame==2.5.2
 sounddevice==0.4.6
 librosa
+keras-tuner
