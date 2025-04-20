@@ -3,8 +3,9 @@ import numpy as np
 import sounddevice as sd
 import tensorflow as tf
 from tensorflow.keras import models
+from queue import Queue, Empty
 
-model = models.load_model("model/voice_model.keras", compile=False)
+model = models.load_model("model/final_voice_model.keras", compile=False)
 labels = ['down', 'left', 'right', 'up']
 voice_active = False
 change_to = 'RIGHT'
@@ -22,6 +23,7 @@ def get_spectrogram(waveform):
     spectrogram = tf.abs(spectrogram)
     spectrogram = spectrogram[..., tf.newaxis]
     return spectrogram
+
 
 def predict_command(treshold=0.7):
     try: 
@@ -49,4 +51,4 @@ def voice_control():
         command = predict_command()
         if command in labels:
             change_to = command.upper()
-        time.sleep(1)
+        time.sleep(0.1)
